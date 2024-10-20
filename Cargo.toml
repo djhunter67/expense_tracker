@@ -3,4 +3,12 @@ name = "expense_tracker"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "expense_tracker"
+path = "src/main.rs"
+
 [dependencies]
+clap = "4.5.20"
