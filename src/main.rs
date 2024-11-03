@@ -23,108 +23,8 @@ expense-tracker summary --month 8
 # Total expenses for August: $20
  */
 
-use std::{
-    fmt::{self, Display},
-    process::exit,
-};
-
-struct Cmd {
-    command: Option<Command>,
-}
-
-impl Cmd {
-    fn new() -> Self {
-        Self { command: None }
-    }
-}
-
-enum Command {
-    Add(Add),
-    List(List),
-    Delete(Delete),
-    Summary(Summary),
-}
-
-impl Display for Command {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Command::Add(add) => write!(f, "{}", add),
-            Command::List(list) => write!(f, "{}", list),
-            Command::Delete(delete) => write!(f, "{}", delete),
-            Command::Summary(summary) => write!(f, "{}", summary),
-        }
-    }
-}
-
-struct Add {
-    description: String,
-    amount: f32,
-}
-
-impl Add {
-    fn new(description: String, amount: f32) -> Self {
-        Self {
-            description,
-            amount,
-        }
-    }
-}
-
-struct Delete {
-    id: i32,
-}
-
-impl Delete {
-    fn new(id: i32) -> Self {
-        Self { id }
-    }
-}
-
-struct List {
-    print: String,
-}
-
-impl List {
-    fn new(list_item: Vec<String>) -> Self {
-        Self {
-            print: list_item.join("\n"),
-        }
-    }
-}
-
-struct Summary {
-    month: i32,
-}
-
-impl Summary {
-    fn new(month: i32) -> Self {
-        Self { month }
-    }
-}
-
-impl Display for Add {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Add")
-    }
-}
-
-impl Display for List {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "List")
-    }
-}
-
-impl Display for Delete {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Delete")
-    }
-}
-
-impl Display for Summary {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Summary")
-    }
-}
+use colored::Colorize;
+use expense_tracker::commands::structures::{show_help, Add, Cmd, Command, Delete, List, Summary};
 
 fn get_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
@@ -134,30 +34,51 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = std::env::args().collect::<Vec<String>>();
     let mut commands: Cmd = Cmd::new();
 
-    println!("\n\nArgs: {:?}\n\n", args);
     for (i, arg) in args.iter().enumerate() {
         println!("Arg {}: {}", i, arg);
     }
+    println!("\n\n");
 
     if args.len() == 1 {
         show_help();
-        exit(1);
+
+        return Err("Error".into());
     }
 
-    if args[1].as_str().eq("--help") || args[1].as_str().eq("-h") {
-        show_help();
-    } else if args[1].as_str().eq("--version")
-        || args[1].as_str().eq("-V")
-        || args[1].as_str().eq("-v")
-    {
-        get_version();
-    } else if args[1].as_str().eq("add") {
+    for arg in args.iter() {
+        if arg.trim().eq("--help") || arg.trim().eq("-h") {
+            commands.command = Some(Command::Help);
+            show_help();
+            return Ok(());
+        } else if arg.trim().eq("--version") || arg.trim().eq("-V") || arg.trim().eq("-v") {
+            println!("Version: {}", get_version());
+            commands.command = Some(Command::Version);
+            return Ok(());
+        }
+    }
+
+    // if args[1].as_str().eq("--help") || args[1].as_str().eq("-h") {
+    //     commands.command = Some(Command::Help);
+    //     show_help();
+    // } else if args[1].as_str().eq("--version")
+    //     || args[1].as_str().eq("-V")
+    //     || args[1].as_str().eq("-v")
+    // {
+    //     println!("Version: {}", get_version());
+    //     commands.command = Some(Command::Version);
+    // } else if args[1].as_str().eq("add") {
+    if args[1].as_str().eq("add") {
         let add_obj = match args.get(2) {
             Some(s) if s == "--description" => args[3].clone(),
             Some(s) if s == "-d" => args[3].clone(),
             _ => {
                 show_help();
-                exit(1);
+                println!(
+                    "\n{}\n-- Arg 3: {}",
+                    "Error: Description not found".red(),
+                    args[3],
+                );
+                "Error: Description not found".red().to_string()
             }
         };
         let amount_obj = match args.get(4) {
@@ -165,7 +86,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Some(s) if s == "-a" => args[5].parse::<f32>().unwrap(),
             _ => {
                 show_help();
-                exit(1);
+                println!(
+                    "\n{}\n-- Arg 5: {}\n",
+                    "Error: Description not found".red(),
+                    args[5],
+                );
+
+                return Err("Error".into());
             }
         };
 
@@ -174,24 +101,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Add request: {}", add_obj.description);
         println!("Add request: {}", add_obj.amount);
         commands.command = Some(Command::Add(add_obj));
-    } else if args[1].as_str().eq("list") {
+    } else if args[1].trim().eq("list") {
         let list_obj = List::new(vec!["1".to_string(), "2".to_string()]);
         println!("List obj: {}", list_obj.print);
         commands.command = Some(Command::List(list_obj));
-    } else if args[1].as_str().eq("delete") {
+    } else if args[1].trim().eq("delete") {
         if args.get(2).is_some() {
-            let del_obj = Delete::new(args[3].parse::<i32>().unwrap());
+            let del_obj = Delete::new(args[3].trim().parse::<i32>().unwrap());
             println!("Del obj: {}", del_obj.id);
             commands.command = Some(Command::Delete(del_obj));
         }
     } else if args[1].as_str().eq("summary") {
         let summary_obj = match args.get(2) {
-            // Some(s) if s == "--month" => args[3].parse::<i32>().unwrap(),
-            Some(s) if s == "--month" => Summary::new(args[3].parse::<i32>().unwrap()),
-            Some(s) if s == "-m" => Summary::new(args[3].parse::<i32>().unwrap()),
+            Some(s) if s == "--month" => Summary::new(args[3].trim().parse::<i32>().unwrap()),
+            Some(s) if s == "-m" => Summary::new(args[3].trim().parse::<i32>().unwrap()),
             _ => {
                 show_help();
-                exit(1);
+                println!(
+                    "\n{}\n-- Arg 2: {}\n",
+                    "Error: Month not found".red(),
+                    args.get(2).unwrap_or(&"None".to_string()),
+                );
+                return Err("Error".into());
             }
         };
 
@@ -199,32 +130,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         commands.command = Some(Command::Summary(summary_obj));
     } else {
         show_help();
-        exit(1);
+        return Err("No input recognized".into());
     }
 
-    println!("\n\nCommand: {}", commands.command.unwrap());
+    println!("\n\nCommand: {}", commands.command.unwrap_or(Command::None));
 
     Ok(())
-}
-
-fn show_help() {
-    println!(
-        r#"COMMANDS:
-Usage: expense_tracker [COMMAND] 
-
-Commands:
-  add --description <DESCRIPTION> -d <DESCRIPTION> --amount <AMOUNT> -a <AMOUNT>
-  list     
-  delete   
-  summary --month <MONTH> -m <MONTH>
-  help     Print this message or the help of the given subcommand(s)
-
-Options:
-  -a, --output <DESCRIPTION>  
-  -l, --list <LIST>           
-  -v, --verbose               
-  -h, --help                  Print help
-  -V, --version               Print version
-"#
-    );
 }
