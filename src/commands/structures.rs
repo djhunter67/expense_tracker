@@ -1,5 +1,7 @@
 use std::fmt::{self, Display};
 
+use serde::{Deserialize, Serialize};
+
 pub struct Cmd {
     pub command: Option<Command>,
 }
@@ -40,6 +42,7 @@ impl Display for Command {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Add {
     pub description: String,
     pub amount: f32,
