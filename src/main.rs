@@ -24,13 +24,24 @@ expense-tracker summary --month 8
  */
 
 use colored::Colorize;
-use expense_tracker::commands::structures::{show_help, Add, Cmd, Command, Delete, List, Summary};
+use expense_tracker::{
+    commands::structures::{show_help, Add, Cmd, Command, Delete, List, Summary},
+    models::helpers::connect_db,
+};
 
 fn get_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = match connect_db("10.20.30.20") {
+        Ok(c) => c,
+        Err(e) => {
+            println!("Error: {}", e);
+            return Err("Error".into());
+        }
+    };
+
     let args = std::env::args().collect::<Vec<String>>();
     let mut commands: Cmd = Cmd::new();
 
@@ -45,6 +56,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Err("Error".into());
     }
 
+    // Check if the help is entered anywhere in the user input; not just at the beginning
     for arg in args.iter() {
         if arg.trim().eq("--help") || arg.trim().eq("-h") {
             commands.command = Some(Command::Help);
@@ -57,16 +69,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // if args[1].as_str().eq("--help") || args[1].as_str().eq("-h") {
-    //     commands.command = Some(Command::Help);
-    //     show_help();
-    // } else if args[1].as_str().eq("--version")
-    //     || args[1].as_str().eq("-V")
-    //     || args[1].as_str().eq("-v")
-    // {
-    //     println!("Version: {}", get_version());
-    //     commands.command = Some(Command::Version);
-    // } else if args[1].as_str().eq("add") {
     if args[1].as_str().eq("add") {
         let add_obj = match args.get(2) {
             Some(s) if s == "--description" => args[3].clone(),
@@ -81,6 +83,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "Error: Description not found".red().to_string()
             }
         };
+
         let amount_obj = match args.get(4) {
             Some(s) if s == "--amount" => args[5].parse::<f32>().unwrap(),
             Some(s) if s == "-a" => args[5].parse::<f32>().unwrap(),

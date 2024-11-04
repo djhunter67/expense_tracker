@@ -2,6 +2,7 @@ use std::fmt::{self, Display};
 
 use serde::{Deserialize, Serialize};
 
+#[derive(Serialize, Deserialize)]
 pub struct Cmd {
     pub command: Option<Command>,
 }
@@ -18,6 +19,7 @@ impl Default for Cmd {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub enum Command {
     Add(Add),
     List(List),
@@ -57,6 +59,7 @@ impl Add {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Delete {
     pub id: i32,
 }
@@ -67,6 +70,7 @@ impl Delete {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct List {
     pub print: String,
 }
@@ -79,6 +83,7 @@ impl List {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Summary {
     pub month: i32,
 }
