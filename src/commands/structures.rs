@@ -120,20 +120,23 @@ impl Display for Summary {
 
 pub fn show_help() {
     println!(
-        r#"HELP:
-Usage: expense_tracker [COMMAND] 
+        r#"
+NAME:
+  expense_tracker - Create, read, update, and delete expenses
 
-Commands:
+SYNOPSIS:
+  expense_tracker [OPTION]... [ARG]...
+
+DESCRIPTION:
   add --description <DESCRIPTION> -d <DESCRIPTION> --amount <AMOUNT> -a <AMOUNT>
   list     
-  delete   
-  summary --month <MONTH> -m <MONTH>
+  delete --id <id number>   
+  summary [month] <MONTH> [m] <MONTH>
   help     Print this message or the help of the given subcommand(s)
 
-Options:
-  -a, --output <DESCRIPTION>  
-  -l, --list <LIST>           
-  -v, --verbose               
+OPTIONS:
+  -l, --list <LIST>           List all added items
+  -v, --verbose               Detailed output
   -h, --help                  Print help
   -V, --version               Print version
 "#

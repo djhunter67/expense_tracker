@@ -1,21 +1,21 @@
+use std::fmt::{self, Display, Formatter};
+
 use mongodb::bson::doc;
 use mongodb::bson::oid::ObjectId;
 use mongodb::options::ClientOptions;
-use mongodb::{self, Client, Collection};
+use mongodb::sync::{Client, Collection};
 
-use crate::commands::structures::{Add, Cmd, Command};
+use crate::commands::structures::{Add, Cmd};
 
 use super::errors::ModelError;
 
-pub async fn connect_db(ip: &str) -> Result<Client, ModelError> {
-    let client_options = ClientOptions::parse(ip)
-        .await
-        .map_err(|_| ModelError::InternalServerError)?;
+pub fn connect_db(ip: &str) -> Result<Client, ModelError> {
+    let client_options = ClientOptions::parse(ip).run();
 
-    Ok(Client::with_options(client_options).unwrap())
+    Ok(Client::with_options(client_options?).unwrap())
 }
 
-// async fn create_collection(client: &Client, db_name: &str, collection_name: &str) {
+// async fn create_collection(client: &Client, db_name: &str, collection_name: Collected) {
 //     let db = client.database(db_name);
 //     db.create_collection(collection_name).await.unwrap();
 // }
@@ -23,7 +23,7 @@ pub async fn connect_db(ip: &str) -> Result<Client, ModelError> {
 pub async fn insert_data(
     client: &Client,
     db_name: &str,
-    collection_name: Command,
+    collection_name: Collected,
     data: Add,
 ) -> ObjectId {
     let db = client.database(db_name);
@@ -36,9 +36,9 @@ pub async fn insert_data(
     obj_id.inserted_id.as_object_id().unwrap().to_owned()
 }
 
-pub async fn get_all_data(client: &Client, db_name: &str, collection_name: &str) -> Vec<Cmd> {
+pub async fn get_all_data(client: &Client, db_name: &str, collection_name: Collected) -> Vec<Cmd> {
     let db = client.database(db_name);
-    let coll: Collection<Cmd> = db.collection(collection_name);
+    let coll: Collection<Cmd> = db.collection(&collection_name.to_string());
     let mut cursor = coll.find(doc! {}).await.unwrap();
     let mut data: Vec<Cmd> = Vec::new();
     while cursor.advance().await.unwrap() {
@@ -48,18 +48,18 @@ pub async fn get_all_data(client: &Client, db_name: &str, collection_name: &str)
     data
 }
 
-pub async fn get_data(client: &Client, db_name: &str, collection_name: &str, id: i32) -> Cmd {
+pub async fn get_data(client: &Client, db_name: &str, collection_name: Collected, id: i32) -> Cmd {
     let db = client.database(db_name);
-    let coll: Collection<Cmd> = db.collection(collection_name);
+    let coll: Collection<Cmd> = db.collection(&collection_name.to_string());
     let doc = doc! {
     "id": id,
     };
     coll.find_one(doc).await.unwrap().unwrap()
 }
 
-pub async fn delete_data(client: &Client, db_name: &str, collection_name: &str, id: i32) {
+pub async fn delete_data(client: &Client, db_name: &str, collection_name: Collected, id: i32) {
     let db = client.database(db_name);
-    let coll: Collection<Cmd> = db.collection(collection_name);
+    let coll: Collection<Cmd> = db.collection(&collection_name.to_string());
     let doc = doc! {
     "id": id,
     };
@@ -69,12 +69,12 @@ pub async fn delete_data(client: &Client, db_name: &str, collection_name: &str, 
 pub async fn update_data(
     client: &Client,
     db_name: &str,
-    collection_name: &str,
+    collection_name: Collected,
     id: i32,
     data: Add,
 ) {
     let db = client.database(db_name);
-    let coll: Collection<Cmd> = db.collection(collection_name);
+    let coll: Collection<Cmd> = db.collection(&collection_name.to_string());
     let filter = doc! {
     "id": id,
     };
@@ -85,4 +85,23 @@ pub async fn update_data(
     },
     };
     coll.update_one(filter, update).await.unwrap();
+}
+
+#[derive(Debug)]
+pub enum Collected {
+    Add,
+    List,
+    Summary,
+    Delete,
+}
+
+impl Display for Collected {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Collected::Add => write!(f, "add"),
+            Collected::List => write!(f, "list"),
+            Collected::Summary => write!(f, "summary"),
+            Collected::Delete => write!(f, "delete"),
+        }
+    }
 }

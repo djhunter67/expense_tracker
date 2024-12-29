@@ -27,6 +27,7 @@ use colored::Colorize;
 use expense_tracker::{
     commands::structures::{show_help, Add, Cmd, Command, Delete, List, Summary},
     models::helpers::connect_db,
+    settings,
 };
 
 fn get_version() -> String {
@@ -34,10 +35,20 @@ fn get_version() -> String {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = match connect_db("10.20.30.20") {
+    dotenv::dotenv().ok();
+
+    let settings = match settings::get() {
+        Ok(settings) => settings,
+        Err(err) => {
+            println!("Failed to load settings: {err}");
+            panic!("Failed to load settings");
+        }
+    };
+
+    let _client = match connect_db(&settings.mongo.connection_string) {
         Ok(c) => c,
         Err(e) => {
-            println!("Error: {}", e);
+            println!("Database connection: {}", e);
             return Err("Error".into());
         }
     };
@@ -45,16 +56,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = std::env::args().collect::<Vec<String>>();
     let mut commands: Cmd = Cmd::new();
 
+    if args.len() <= 1 {
+        show_help();
+        return Err("No input detected".into());
+    }
+
     for (i, arg) in args.iter().enumerate() {
         println!("Arg {}: {}", i, arg);
     }
     println!("\n\n");
-
-    if args.len() == 1 {
-        show_help();
-
-        return Err("Error".into());
-    }
 
     // Check if the help is entered anywhere in the user input; not just at the beginning
     for arg in args.iter() {
